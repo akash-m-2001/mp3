@@ -1,0 +1,1528 @@
+[dotenv@17.2.3] injecting env (3) from .env -- tip: ⚙️  enable debug logging withh { debug: true }
+Server running on port 3000
+
+
+should i wait ? 
+You said:
+// Get the packages we need
+var express = require('express'),
+    router = express.Router(),
+    mongoose = require('mongoose'),
+    bodyParser = require('body-parser');
+
+// ✅ Read .env file first
+require('dotenv').config();
+
+// Create our Express application
+var app = express();
+
+// Use environment defined port or 3000
+var port = process.env.PORT || 3000;
+
+// ✅ Connect to MongoDB Atlas (remove the old commented-out line)
+mongoose.connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+});
+
+// ✅ Optional — log connection success or errors
+mongoose.connection.on('connected', () => {
+    console.log('✅ MongoDB connected successfully');
+});
+mongoose.connection.on('error', (err) => {
+    console.error('❌ MongoDB connection error:', err);
+});
+
+// Allow CORS so that backend and frontend could be put on different servers
+var allowCrossDomain = function (req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept");
+    res.header("Access-Control-Allow-Methods", "POST, GET, PUT, DELETE, OPTIONS");
+    next();
+};
+app.use(allowCrossDomain);
+
+// Use the body-parser package in our application
+app.use(bodyParser.urlencoded({
+    extended: true
+}));
+app.use(bodyParser.json());
+
+// Use routes as a module (see index.js)
+require('./routes')(app, router);
+
+// Start the server
+app.listen(port, () => {
+    console.log('🚀 Server running on port ' + port);
+});
+You said:
+The Basic Goal : Create an API for a task management / todo list.
+
+The Fun Goal : Imagine your hot new startup, Llama.io, is creating the best todo webapp on the market. You're competing in a crowded space with hot players like Asana, Wunderlist, Google Keep, etc, so your API has to be top-notch.
+
+Task
+Implement an API with the following end-points (they would be preceded by something like http://localhost:3000/api/). Your implementation should use Node, Express and Mongoose.
+
+Endpoints	Actions	Intended Outcome
+users	GET	Respond with a List of users
+POST	Create a new user. Respond with details of new user
+users/:id	GET	Respond with details of specified user or 404 error
+PUT	Replace entire user with supplied user or 404 error
+DELETE	Delete specified user or 404 error
+tasks	GET	Respond with a List of tasks
+POST	Create a new task. Respond with details of new task
+tasks/:id	GET	Respond with details of specified task or 404 error
+PUT	Replace entire task with supplied task or 404 error
+DELETE	Delete specified task or 404 error
+NOTE: In addition, the API has the following JSON encoded query string parameters for the GET requests to the users and tasks endpoints. You will also need to make sure the [+select+] parameter works for the users/:id and tasks/:id endpoints.:
+
+Parameter	Description
+where	filter results based on JSON query
+sort	specify the order in which to sort each specified field (1- ascending; -1 - descending)
+select	specify the set of fields to include or exclude in each document (1 - include; 0 - exclude)
+skip	specify the number of results to skip in the result set; useful for pagination
+limit	specify the number of results to return (default should be 100 for tasks and unlimited for users)
+count	if set to true, return the count of documents that match the query (instead of the documents themselves)
+Here are some example queries and what they would return:
+
+Query	Description
+http://localhost:3000/api/tasks	Returns full list of tasks
+http://localhost:3000/api/users	Returns full list of users
+http://localhost:3000/api/users?where={"_id": "55099652e5993a350458b7b7"}	Returns a list with a single user with the specified ID ('_id' will be different)
+http://localhost:3000/api/tasks?where={"completed": true}	Returns a list of completed tasks
+http://localhost:3000/api/tasks?where={"_id": {"$in": ["59f930d6b1596b0cb3e82953","5a1b6d7bd72ba9106fe9239c"]}}	Returns a set of tasks
+http://localhost:3000/api/users?sort={"name": 1}	Returns a list of users sorted by name
+http://localhost:3000/api/users?select={"_id": 0}	Returns a list of users without the _id field
+http://localhost:3000/api/tasks?skip=60&limit=20	Returns tasks number from 61 to 80
+The API should be able to handle any combination of those parameters in a single request. For example, the following is a valid GET request:
+
+http://localhost:3000/api/users?sort={"name": 1}&skip=60&limit=20
+Here is the User Schema:
+
+"name" - String
+"email" - String
+"pendingTasks" - [String] - The _id fields of the pending tasks that this user has
+"dateCreated" - Date - should be set automatically by server
+Here is the Task Schema:
+
+"name" - String
+"description" - String
+"deadline" - Date
+"completed" - Boolean
+"assignedUser" - String - The _id field of the user this task is assigned to - default ""
+"assignedUserName" - String - The name field of the user this task is assigned to - default "unassigned"
+"dateCreated" - Date - should be set automatically by server to present date
+We assume that each task can be assigned only to one user.
+
+Requirements
+Your database should be on MongoDB Atlas. It should contain at least 20 users and 100 tasks (about half of which should be completed) (We provided scripts for you in the database_scripts folder. Read below how to use these scripts). NOTE: Please add "Allow access from anywhere" to your cluster in the IP Whitelist" (This is usually not a good practice in real use. Here is just easier for us to grade your mp)
+
+Responses from your API should be a JSON object with two fields. The first field should be named message and should contain a human readable String. The second field should be named data and should contain the actual JSON response object. For example, here is a valid response:
+
+{
+    "message": "OK",
+    "data": {
+        "_id": "55099652e5993a350458b7b7",
+        "email": "khandek2@illinois.edu",
+        "name": "Sujay Khandekar"
+    }
+}
+Error responses from your API should also also be a JSON object with a message and data fields. Messages have to sensible and human readable so that on the client side it can be displayed to the user. Also, it should be independent of the server side technology that you are using. For example, your API should not return an error message directly from Mongoose to the client.
+
+Your API should respond with appropriate HTTP status codes for both successful and error responses. You should at least have the following codes: 200 (success), 201 (created), 204(no content), 400(bad request), 404 (not found), 500 (server error).
+
+You should implement the query string functionality by using the methods provided by Mongoose (as opposed to querying Mongoose for all the results and then doing the filtering/sorting/skipping etc. in your Node/Express application code).
+
+Have server side validation for:
+
+Users cannot be created (or updated) without a name or email. All other fields that the user did not specify should be set to reasonable values.
+Multiple users with the same email cannot exist.
+Tasks cannot be created (or updated) without a name or a deadline. All other fields that the user did not specify should be set to reasonable values.
+Your API should guarantee two-way reference between Task and User for the following methods:
+
+PUT a Task with assignedUser and assignedUserName
+DELETE a Task should remove the task from its assignedUser's pendingTasks
+PUT a User with pendingTasks
+DELETE a User should unassign the user's pending tasks
+2. Getting Started
+Create a public repository under your own account on GitHub by clicking the use this template button on the top right.
+Clone the repository you created to your local machine.
+Install dependencies: npm install
+Start the dev server: npm start
+3. Tips
+Start early!
+Please DO NOT delete the .gitignore file from the project, you will lose 1% point
+DO NOT push your updated .env file to your repository (remember to uncomment .env in .gitignore), or you will lose 1% point
+We will check if you uncommented .env
+Check out Postman to your API
+Free MongoDB server - MongoDB Atlas
+The example queries above will cover 70% grade, and another 30% of corner test cases will not be released.
+In order for us to view and grade your MP, you will be deploying your APIs on Render. Refer to DevLab videos and slides for a demo including setting up MongoDB, connecting Express.js and deploying on Render.
+For answers to some popular questions see FAQ.md.
+
+How to use the DB Scripts
+Assuming your API is fully operational (you need to have implement /users and /tasks endpoints for your API), these scripts (in database_scripts/ folder) will populate and clear your database as needed. NOTE: Use Python3 to run following codes
+
+dbClean.py
+
+python3 dbClean.py -u "localhost" -p 3000 
+
+You can change "localhost" and the port number to match your own running api server. Leave the quotation marks. DO NOT include "/api/" or "/user" etc.
+
+dbFill.py
+
+python3 dbFill.py -u "localhost" -p 3000 -n 20 -t 100
+
+Once again, change the url and port number to match your own running api server. You can populate your database with X users and Y tasks (in the above case, 20 and 100 respectively). This will randomly generate users with realistic names and emails as well as realistic tasks. Tasks will have a 50% chance of being completed and a 60% chance of being assigned. If num_tasks >> num_users, users will likely have multiple tasks assigned to them. A task will have one assigned user at most.
+
+task.txt
+
+Contains sample task descriptions. Edit if you want, I don't care
+You said:
+well steps to run based on requirements
+You said:
+3) Testing quick hits
+
+
+Fill DB:
+python3 database_scripts/dbFill.py -u "localhost" -p 3000 -n 20 -t 100
+
+
+
+Examples:
+
+
+GET /api/tasks
+
+
+GET /api/tasks?where={"completed":true}
+
+
+GET /api/users?sort={"name":1}
+
+
+GET /api/users?select={"_id":0}
+
+
+GET /api/tasks?skip=60&limit=20
+
+
+GET /api/users?sort={"name":1}&skip=60&limit=20
+
+
+
+
+POST /api/tasks (assigned & pending sync)
+{
+  "name": "Finish MP3",
+  "description": "Implement query params",
+  "deadline": "2025-11-10",
+  "assignedUser": "PUT_A_REAL_USER_ID_HERE",
+  "completed": false
+}
+
+
+
+PUT /api/users/:id (drive linkage from user side)
+{
+  "name": "Akash",
+  "email": "akash@example.com",
+  "pendingTasks": ["<taskId1>", "<taskId2>"]
+}
+
+
+
+4) Render deploy (very short)
+
+
+Create Web Service from your GitHub repo.
+
+
+Environment → add:
+
+
+MONGODB_URI=...
+
+
+PORT=3000
+
+
+
+
+Start command: node server.js
+
+
+Test live: https://your-app.onrender.com/api/users
+
+
+If you want, paste any error/log you hit next and I’ll pinpoint it fast.
+
+
+i mean this
+You said:
+eDrive\Desktop\mp3> node server.js
+[dotenv@17.2.3] injecting env (3) from .env -- tip: ⚙️  enable debug logging withh { debug: true }
+Server running on port 3000
+PS C:\Users\akash\OneDrive\Desktop\mp3> python3 database_scripts/dbFill.py -u "localhost" -p 3000 -n 20 -t 100
+Traceback (most recent call last):
+  File "C:\Users\akash\OneDrive\Desktop\mp3\database_scripts\dbFill.py", line 157, in <module>
+    main(sys.argv[1:])
+    ~~~~^^^^^^^^^^^^^^
+  File "C:\Users\akash\OneDrive\Desktop\mp3\database_scripts\dbFill.py", line 90, in main
+    conn.request("POST", "/api/users", params, headers)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\http\client.py", line 1338, in request
+    self._send_request(method, url, body, headers, encode_chunked)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\http\client.py", line 1384, in _send_request
+    self.endheaders(body, encode_chunked=encode_chunked)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\http\client.py", line 1333, in endheaders
+    self._send_output(message_body, encode_chunked=encode_chunked)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\http\client.py", line 1093, in _send_output
+    self.send(msg)
+    ~~~~~~~~~^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\http\client.py", line 1037, in send
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\http\client.py", line 1003, in connect
+    self.sock = self._create_connection(
+                ~~~~~~~~~~~~~~~~~~~~~~~^
+        (self.host,self.port), self.timeout, self.source_address)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\socket.py", line 864, in create_connection
+    raise exceptions[0]
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\socket.py", line 849, in create_connection
+    sock.connect(sa)
+    ~~~~~~~~~~~~^^^^
+ConnectionRefusedError: [WinError 10061] No connection could be made because the target machine actively refused it
+You said:
+well help setting mongodb first
+You said:
+You said:
+You said:
+CREATE A CLUSTER ?
+You said:
+You said:
+You said:
+Connecting to MongoDB with URI: mongodb+srv://akashlalagudi2001_db_user:qpkHS76uBWqdH4Fz@cluster0.vjlbtu1.mongodb.net/mp3_database?retryWrites=true&w=majority    
+🚀 Server running on port 3000
+(node:21804) [DEP0170] DeprecationWarning: The URL mongodb://akashlalagudi2001_db_user:qpkHS76uBWqdH4Fz@ac-ea6xqax-shard-00-00.vjlbtu1.mongodb.net:27017,ac-ea6xqax-shard-00-01.vjlbtu1.mongodb.net:27017,ac-ea6xqax-shard-00-02.vjlbtu1.mongodb.net:27017/mp3_database?authSource=admin&replicaSet=atlas-g5umdt-shard-0&retryWrites=true&w=majority&ssl=true is invalid. Future versions of Node.js will throw an error.
+(Use node --trace-deprecation ... to show where the warning was created)       
+❌ MongoDB connection error: MongoError: bad auth : Authentication failed.
+    at MessageStream.messageHandler (C:\Users\akash\OneDrive\Desktop\mp3\node_modules\mongodb\lib\cmap\connection.js:299:20)
+    at MessageStream.emit (node:events:519:28)
+    at processIncomingData (C:\Users\akash\OneDrive\Desktop\mp3\node_modules\mongodb\lib\cmap\message_stream.js:144:12)
+    at MessageStream._write (C:\Users\akash\OneDrive\Desktop\mp3\node_modules\mongodb\lib\cmap\message_stream.js:42:5)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+    at _write (node:internal/streams/writable:501:10)
+    at Writable.write (node:internal/streams/writable:510:10)
+    at TLSSocket.ondata (node:internal/streams/readable:1009:22)
+    at TLSSocket.emit (node:events:519:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)       
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23) {
+  ok: 0,
+  code: 8000,
+  codeName: 'AtlasError'
+}
+node:internal/process/promises:394
+    triggerUncaughtException(err, true /* fromPromise */);
+    ^
+
+MongoError: bad auth : Authentication failed.
+    at MessageStream.messageHandler (C:\Users\akash\OneDrive\Desktop\mp3\node_modules\mongodb\lib\cmap\connection.js:299:20)
+    at MessageStream.emit (node:events:519:28)
+    at processIncomingData (C:\Users\akash\OneDrive\Desktop\mp3\node_modules\mongodb\lib\cmap\message_stream.js:144:12)
+    at MessageStream._write (C:\Users\akash\OneDrive\Desktop\mp3\node_modules\mongodb\lib\cmap\message_stream.js:42:5)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+    at _write (node:internal/streams/writable:501:10)
+    at Writable.write (node:internal/streams/writable:510:10)
+    at TLSSocket.ondata (node:internal/streams/readable:1009:22)
+    at TLSSocket.emit (node:events:519:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)       
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23) {
+  ok: 0,
+  code: 8000,
+  codeName: 'AtlasError'
+}
+
+Node.js v22.19.0
+You said:
+You said:
+You said:
+You said:
+You said:
+S C:\Users\akash\OneDrive\Desktop\mp3> node server.js     
+[dotenv@17.2.3] injecting env (3) from .env -- tip: ⚙️  load multiple .env files  with { path: ['.env.local', '.env'] }
+Connecting to MongoDB with URI: mongodb+srv://akashlalagudi2001_db_user:lalgudi7398@cluster0.vjlbtu1.mongodb.net/mp3_database?retryWrites=true&w=majority
+🚀 Server running on port 3000
+(node:18044) [DEP0170] DeprecationWarning: The URL mongodb://akashlalagudi2001_db_user:lalgudi7398@ac-ea6xqax-shard-00-00.vjlbtu1.mongodb.net:27017,ac-ea6xqax-shard-00-01.vjlbtu1.mongodb.net:27017,ac-ea6xqax-shard-00-02.vjlbtu1.mongodb.net:27017/mp3_database?authSource=admin&replicaSet=atlas-g5umdt-shard-0&retryWrites=true&w=majority&ssl=true is invalid. Future versions of Node.js will throw an error. 
+(Use node --trace-deprecation ... to show where the warning was created)       
+❌ MongoDB connection error: MongoError: bad auth : Authentication failed.
+    at MessageStream.messageHandler (C:\Users\akash\OneDrive\Desktop\mp3\node_modules\mongoose\node_modules\mongodb\lib\cmap\connection.js:299:20)
+    at MessageStream.emit (node:events:519:28)
+    at processIncomingData (C:\Users\akash\OneDrive\Desktop\mp3\node_modules\mongoose\node_modules\mongodb\lib\cmap\message_stream.js:144:12)
+    at MessageStream._write (C:\Users\akash\OneDrive\Desktop\mp3\node_modules\mongoose\node_modules\mongodb\lib\cmap\message_stream.js:42:5)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+    at _write (node:internal/streams/writable:501:10)
+    at Writable.write (node:internal/streams/writable:510:10)
+    at TLSSocket.ondata (node:internal/streams/readable:1009:22)
+    at TLSSocket.emit (node:events:519:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)       
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23) {
+  ok: 0,
+  code: 8000,
+  codeName: 'AtlasError'
+}
+node:internal/process/promises:394
+    triggerUncaughtException(err, true /* fromPromise */);
+    ^
+
+MongoError: bad auth : Authentication failed.
+    at MessageStream.messageHandler (C:\Users\akash\OneDrive\Desktop\mp3\node_modules\mongoose\node_modules\mongodb\lib\cmap\connection.js:299:20)
+    at MessageStream.emit (node:events:519:28)
+    at processIncomingData (C:\Users\akash\OneDrive\Desktop\mp3\node_modules\mongoose\node_modules\mongodb\lib\cmap\message_stream.js:144:12)
+    at MessageStream._write (C:\Users\akash\OneDrive\Desktop\mp3\node_modules\mongoose\node_modules\mongodb\lib\cmap\message_stream.js:42:5)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+    at _write (node:internal/streams/writable:501:10)
+    at Writable.write (node:internal/streams/writable:510:10)
+    at TLSSocket.ondata (node:internal/streams/readable:1009:22)
+    at TLSSocket.emit (node:events:519:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)       
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23) {
+  ok: 0,
+  code: 8000,
+  codeName: 'AtlasError'
+}
+You said:
+MONGODB_URI=mongodb+srv://akashlalagudi2001_db_user:lalgudi7398@cluster0.vjlbtu1.mongodb.net/mp3_database?retryWrites=true&w=majority
+PORT=3000
+You said:
+why ?
+You said:
+i gave it
+You said:
+TOKEN=secret-starter-mern
+MONGODB_URI=mongodb+srv://akashlalagudi2001_db_user:lalgudi7398@cluster0.vjlbtu1.mongodb.net/mp3_database?retryWrites=true&w=majority
+PORT=3000
+You said:
+TOKEN=secret-starter-mern
+MONGODB_URI=mongodb+srv://akashlalagudi2001_db_user:Akash2025@cluster0.vjlbtu1.mongodb.net/mp3_database?retryWrites=true&w=majority
+PORT=3000
+You said:
+[dotenv@17.2.3] injecting env (3) from .env -- tip: 🔄 add secrets lifecycle management: https://dotenvx.com/ops
+Connecting to MongoDB with URI: mongodb+srv://akashlalagudi2001_db_user:Akash2025@cluster0.vjlbtu1.mongodb.net/mp3_database?retryWrites=true&w=majority
+🚀 Server running on port 3000
+(node:10328) [DEP0170] DeprecationWarning: The URL mongodb://akashlalagudi2001_db_user:Akash2025@ac-ea6xqax-shard-00-01.vjlbtu1.mongodb.net:27017,ac-ea6xqax-shard-00-02.vjlbtu1.mongodb.net:27017,ac-ea6xqax-shard-00-00.vjlbtu1.mongodb.net:27017/mp3_database?authSource=admin&replicaSet=atlas-g5umdt-shard-0&retryWrites=true&w=majority&ssl=true is invalid. Future versions of Node.js will throw an error.   
+(Use node --trace-deprecation ... to show where the warning was created)       
+❌ MongoDB connection error: MongoError: bad auth : Authentication failed.
+    at MessageStream.messageHandler (C:\Users\akash\OneDrive\Desktop\mp3\node_modules\mongoose\node_modules\mongodb\lib\cmap\connection.js:299:20)
+    at MessageStream.emit (node:events:519:28)
+    at processIncomingData (C:\Users\akash\OneDrive\Desktop\mp3\node_modules\mongoose\node_modules\mongodb\lib\cmap\message_stream.js:144:12)
+    at MessageStream._write (C:\Users\akash\OneDrive\Desktop\mp3\node_modules\mongoose\node_modules\mongodb\lib\cmap\message_stream.js:42:5)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+    at _write (node:internal/streams/writable:501:10)
+    at Writable.write (node:internal/streams/writable:510:10)
+    at TLSSocket.ondata (node:internal/streams/readable:1009:22)
+    at TLSSocket.emit (node:events:519:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)       
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23) {
+  ok: 0,
+  code: 8000,
+  codeName: 'AtlasError'
+}
+node:internal/process/promises:394
+    triggerUncaughtException(err, true /* fromPromise */);
+    ^
+
+MongoError: bad auth : Authentication failed.
+    at MessageStream.messageHandler (C:\Users\akash\OneDrive\Desktop\mp3\node_modules\mongoose\node_modules\mongodb\lib\cmap\connection.js:299:20)
+    at MessageStream.emit (node:events:519:28)
+    at processIncomingData (C:\Users\akash\OneDrive\Desktop\mp3\node_modules\mongoose\node_modules\mongodb\lib\cmap\message_stream.js:144:12)
+    at MessageStream._write (C:\Users\akash\OneDrive\Desktop\mp3\node_modules\mongoose\node_modules\mongodb\lib\cmap\message_stream.js:42:5)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+    at _write (node:internal/streams/writable:501:10)
+    at Writable.write (node:internal/streams/writable:510:10)
+    at TLSSocket.ondata (node:internal/streams/readable:1009:22)
+    at TLSSocket.emit (node:events:519:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)       
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23) {
+  ok: 0,
+  code: 8000,
+  codeName: 'AtlasError'
+}
+
+Node.js v22.19.0
+PS C:\Users\akash\OneDrive\Desktop\mp3> 
+
+
+still i beg you please
+You said:
+its fucking 3rd time. tell mmer whats wrtong
+You said:
+]
+You said:
+wait. i want to use the link they suggested
+You said:
+how to find the link
+You said:
+Node.js v22.19.0
+PS C:\Users\akash\OneDrive\Desktop\mp3> node server.js
+[dotenv@17.2.3] injecting env (3) from .env -- tip: 🔄 add secrets lifecycle management: https://dotenvx.com/ops
+Connecting to MongoDB with URI: mongodb+srv://akashlalgudi2001_db_user:Akash2025@cluster0.vjlbtu1.mongodb.net/?appName=Cluster0
+🚀 Server running on port 3000
+(node:6412) [DEP0170] DeprecationWarning: The URL mongodb://akashlalgudi2001_db_user:Akash2025@ac-ea6xqax-shard-00-01.vjlbtu1.mongodb.net:27017,ac-ea6xqax-shard-00-02.vjlbtu1.mongodb.net:27017,ac-ea6xqax-shard-00-00.vjlbtu1.mongodb.net:27017/?authSource=admin&replicaSet=atlas-g5umdt-shard-0&appName=Cluster0&ssl=true is invalid. Future versions of Node.js will throw an error.
+(Use node --trace-deprecation ... to show where the warning was created)       
+✅ MongoDB connected successfully
+(node:6412) DeprecationWarning: collection.ensureIndex is deprecated. Use createIndexes instead.
+You said:
+should i have to stop and d ?
+You said:
+how to creayte new terminga;l\
+You said:
+in vs code
+You said:
+Traceback (most recent call last):
+  File "C:\Users\akash\OneDrive\Desktop\mp3\database_scripts\dbFill.py", line 157, in <module>
+    main(sys.argv[1:])
+    ~~~~^^^^^^^^^^^^^^
+  File "C:\Users\akash\OneDrive\Desktop\mp3\database_scripts\dbFill.py", line 101, in main
+    f = open('tasks.txt','r')
+FileNotFoundError: [Errno 2] No such file or directory: 'tasks.txt'
+You said:
+yes its there only
+You said:
+You said:
+PS C:\Users\akash\OneDrive\Desktop\mp3\database_scripts> python3 dbFill.py -u "localhost" -p 3000 -n 20 -t 100
+20 users and 100 tasks added at localhost:3000
+You said:
+how to test these
+You said:
+{"message":"OK","data":[{"pendingTasks":[],"_id":"690a6a8ed339c4190c89b169","name":"timothy russell","email":"timothy@russell.com","dateCreated":"2025-11-04T21:05:18.882Z","__v":0},{"pendingTasks":[],"_id":"690a6a8ed339c4190c89b16c","name":"daniel harris","email":"daniel@harris.com","dateCreated":"2025-11-04T21:05:18.998Z","__v":0},{"pendingTasks":[],"_id":"690a6a8fd339c4190c89b16f","name":"walter moore","email":"walter@moore.com","dateCreated":"2025-11-04T21:05:19.082Z","__v":0},{"pendingTasks":[],"_id":"690a6a8fd339c4190c89b172","name":"todd sanchez","email":"todd@sanchez.com","dateCreated":"2025-11-04T21:05:19.159Z","__v":0},{"pendingTasks":[],"_id":"690a6a8fd339c4190c89b175","name":"victor butler","email":"victor@butler.com","dateCreated":"2025-11-04T21:05:19.255Z","__v":0},{"pendingTasks":[],"_id":"690a6a8fd339c4190c89b178","name":"philip sanchez","email":"philip@sanchez.com","dateCreated":"2025-11-04T21:05:19.340Z","__v":0},{"pendingTasks":[],"_id":"690a6a8fd339c4190c89b17b","name":"victor miller","email":"victor@miller.com","dateCreated":"2025-11-04T21:05:19.416Z","__v":0},{"pendingTasks":[],"_id":"690a6a8fd339c4190c89b17e","name":"jesse bell","email":"jesse@bell.com","dateCreated":"2025-11-04T21:05:19.526Z","__v":0},{"pendingTasks":[],"_id":"690a6a8fd339c4190c89b181","name":"justin cox","email":"justin@cox.com","dateCreated":"2025-11-04T21:05:19.606Z","__v":0},{"pendingTasks":[],"_id":"690a6a8fd339c4190c89b184","name":"gregory hayes","email":"gregory@hayes.com","dateCreated":"2025-11-04T21:05:19.683Z","__v":0},{"pendingTasks":[],"_id":"690a6a8fd339c4190c89b187","name":"matthew watson","email":"matthew@watson.com","dateCreated":"2025-11-04T21:05:19.756Z","__v":0},{"pendingTasks":[],"_id":"690a6a8fd339c4190c89b18a","name":"brandon allen","email":"brandon@allen.com","dateCreated":"2025-11-04T21:05:19.827Z","__v":0},{"pendingTasks":[],"_id":"690a6a8fd339c4190c89b18d","name":"jack cooper","email":"jack@cooper.com","dateCreated":"2025-11-04T21:05:19.915Z","__v":0},{"pendingTasks":[],"_id":"690a6a90d339c4190c89b190","name":"gerald foster","email":"gerald@foster.com","dateCreated":"2025-11-04T21:05:20.017Z","__v":0},{"pendingTasks":[],"_id":"690a6a90d339c4190c89b193","name":"gary long","email":"gary@long.com","dateCreated":"2025-11-04T21:05:20.099Z","__v":0},{"pendingTasks":[],"_id":"690a6a90d339c4190c89b196","name":"scott smith","email":"scott@smith.com","dateCreated":"2025-11-04T21:05:20.180Z","__v":0},{"pendingTasks":[],"_id":"690a6a90d339c4190c89b199","name":"larry morris","email":"larry@morris.com","dateCreated":"2025-11-04T21:05:20.251Z","__v":0},{"pendingTasks":[],"_id":"690a6a90d339c4190c89b19c","name":"albert rogers","email":"albert@rogers.com","dateCreated":"2025-11-04T21:05:20.320Z","__v":0},{"pendingTasks":[],"_id":"690a6a90d339c4190c89b19f","name":"matthew jackson","email":"matthew@jackson.com","dateCreated":"2025-11-04T21:05:20.390Z","__v":0},{"pendingTasks":[],"_id":"690a6a90d339c4190c89b1a2","name":"john roberts","email":"john@roberts.com","dateCreated":"2025-11-04T21:05:20.476Z","__v":0},{"pendingTasks":[],"_id":"690a6be2d339c4190c89b1a5","name":"donald parker","email":"donald@parker.com","dateCreated":"2025-11-04T21:10:58.783Z","__v":0},{"pendingTasks":[],"_id":"690a6be2d339c4190c89b1a8","name":"anthony carter","email":"anthony@carter.com","dateCreated":"2025-11-04T21:10:58.859Z","__v":0},{"pendingTasks":[],"_id":"690a6be2d339c4190c89b1ab","name":"russell morris","email":"russell@morris.com","dateCreated":"2025-11-04T21:10:58.929Z","__v":0},{"pendingTasks":[],"_id":"690a6be3d339c4190c89b1ae","name":"aaron baker","email":"aaron@baker.com","dateCreated":"2025-11-04T21:10:59.003Z","__v":0},{"pendingTasks":[],"_id":"690a6be3d339c4190c89b1b1","name":"edward wilson","email":"edward@wilson.com","dateCreated":"2025-11-04T21:10:59.072Z","__v":0},{"pendingTasks":[],"_id":"690a6be3d339c4190c89b1b4","name":"ryan robinson","email":"ryan@robinson.com","dateCreated":"2025-11-04T21:10:59.140Z","__v":0},{"pendingTasks":[],"_id":"690a6be3d339c4190c89b1b7","name":"harry jones","email":"harry@jones.com","dateCreated":"2025-11-04T21:10:59.235Z","__v":0},{"pendingTasks":[],"_id":"690a6be3d339c4190c89b1ba","name":"daniel young","email":"daniel@young.com","dateCreated":"2025-11-04T21:10:59.309Z","__v":0},{"pendingTasks":[],"_id":"690a6be3d339c4190c89b1bd","name":"andrew reed","email":"andrew@reed.com","dateCreated":"2025-11-04T21:10:59.393Z","__v":0},{"pendingTasks":[],"_id":"690a6be3d339c4190c89b1c0","name":"eugene lewis","email":"eugene@lewis.com","dateCreated":"2025-11-04T21:10:59.539Z","__v":0},{"pendingTasks":[],"_id":"690a6be3d339c4190c89b1c3","name":"russell young","email":"russell@young.com","dateCreated":"2025-11-04T21:10:59.611Z","__v":0},{"pendingTasks":[],"_id":"690a6be3d339c4190c89b1c6","name":"wayne campbell","email":"wayne@campbell.com","dateCreated":"2025-11-04T21:10:59.678Z","__v":0},{"pendingTasks":[],"_id":"690a6be3d339c4190c89b1c9","name":"antonio clark","email":"antonio@clark.com","dateCreated":"2025-11-04T21:10:59.747Z","__v":0},{"pendingTasks":[],"_id":"690a6be3d339c4190c89b1cc","name":"ronald russell","email":"ronald@russell.com","dateCreated":"2025-11-04T21:10:59.829Z","__v":0},{"pendingTasks":[],"_id":"690a6be3d339c4190c89b1cf","name":"ernest rivera","email":"ernest@rivera.com","dateCreated":"2025-11-04T21:10:59.901Z","__v":0},{"pendingTasks":[],"_id":"690a6be3d339c4190c89b1d2","name":"dennis bennett","email":"dennis@bennett.com","dateCreated":"2025-11-04T21:10:59.991Z","__v":0},{"pendingTasks":[],"_id":"690a6be4d339c4190c89b1d5","name":"samuel hughes","email":"samuel@hughes.com","dateCreated":"2025-11-04T21:11:00.061Z","__v":0},{"pendingTasks":[],"_id":"690a6be4d339c4190c89b1d8","name":"bruce moore","email":"bruce@moore.com","dateCreated":"2025-11-04T21:11:00.138Z","__v":0},{"pendingTasks":[],"_id":"690a6be4d339c4190c89b1db","name":"thomas hernandez","email":"thomas@hernandez.com","dateCreated":"2025-11-04T21:11:00.213Z","__v":0},{"pendingTasks":[],"_id":"690a6be4d339c4190c89b1de","name":"willie green","email":"willie@green.com","dateCreated":"2025-11-04T21:11:00.283Z","__v":0}]}
+You said:
+how to do the 2nd test
+You said:
+why postman opens in fullscreen
+You said:
+You said:
+You said:
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Error</title>
+</head>
+<body>
+<pre>Cannot POST /api/users%0A</pre>
+</body>
+</html>
+You said:
+{
+    "message": "Missing required fields (name, email)",
+    "data": null
+}
+You said:
+{
+  "name": "Akash Muthukumar",
+  "email": "akashm4@illinois.edu"
+}
+
+
+should i replace this ?  
+You said:
+You said:
+couldnt edit
+You said:
+you mean here
+You said:
+what next
+You said:
+ "message": "OK",
+    "data": [
+        {
+            "pendingTasks": [],
+            "_id": "690a6a8ed339c4190c89b169",
+            "name": "timothy russell",
+            "email": "timothy@russell.com",
+            "dateCreated": "2025-11-04T21:05:18.882Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6a8ed339c4190c89b16c",
+            "name": "daniel harris",
+            "email": "daniel@harris.com",
+            "dateCreated": "2025-11-04T21:05:18.998Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6a8fd339c4190c89b16f",
+            "name": "walter moore",
+            "email": "walter@moore.com",
+            "dateCreated": "2025-11-04T21:05:19.082Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6a8fd339c4190c89b172",
+            "name": "todd sanchez",
+            "email": "todd@sanchez.com",
+            "dateCreated": "2025-11-04T21:05:19.159Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6a8fd339c4190c89b175",
+            "name": "victor butler",
+            "email": "victor@butler.com",
+            "dateCreated": "2025-11-04T21:05:19.255Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6a8fd339c4190c89b178",
+            "name": "philip sanchez",
+            "email": "philip@sanchez.com",
+            "dateCreated": "2025-11-04T21:05:19.340Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6a8fd339c4190c89b17b",
+            "name": "victor miller",
+            "email": "victor@miller.com",
+            "dateCreated": "2025-11-04T21:05:19.416Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6a8fd339c4190c89b17e",
+            "name": "jesse bell",
+            "email": "jesse@bell.com",
+            "dateCreated": "2025-11-04T21:05:19.526Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6a8fd339c4190c89b181",
+            "name": "justin cox",
+            "email": "justin@cox.com",
+            "dateCreated": "2025-11-04T21:05:19.606Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6a8fd339c4190c89b184",
+            "name": "gregory hayes",
+            "email": "gregory@hayes.com",
+            "dateCreated": "2025-11-04T21:05:19.683Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6a8fd339c4190c89b187",
+            "name": "matthew watson",
+            "email": "matthew@watson.com",
+            "dateCreated": "2025-11-04T21:05:19.756Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6a8fd339c4190c89b18a",
+            "name": "brandon allen",
+            "email": "brandon@allen.com",
+            "dateCreated": "2025-11-04T21:05:19.827Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6a8fd339c4190c89b18d",
+            "name": "jack cooper",
+            "email": "jack@cooper.com",
+            "dateCreated": "2025-11-04T21:05:19.915Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6a90d339c4190c89b190",
+            "name": "gerald foster",
+            "email": "gerald@foster.com",
+            "dateCreated": "2025-11-04T21:05:20.017Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6a90d339c4190c89b193",
+            "name": "gary long",
+            "email": "gary@long.com",
+            "dateCreated": "2025-11-04T21:05:20.099Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6a90d339c4190c89b196",
+            "name": "scott smith",
+            "email": "scott@smith.com",
+            "dateCreated": "2025-11-04T21:05:20.180Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6a90d339c4190c89b199",
+            "name": "larry morris",
+            "email": "larry@morris.com",
+            "dateCreated": "2025-11-04T21:05:20.251Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6a90d339c4190c89b19c",
+            "name": "albert rogers",
+            "email": "albert@rogers.com",
+            "dateCreated": "2025-11-04T21:05:20.320Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6a90d339c4190c89b19f",
+            "name": "matthew jackson",
+            "email": "matthew@jackson.com",
+            "dateCreated": "2025-11-04T21:05:20.390Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6a90d339c4190c89b1a2",
+            "name": "john roberts",
+            "email": "john@roberts.com",
+            "dateCreated": "2025-11-04T21:05:20.476Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6be2d339c4190c89b1a5",
+            "name": "donald parker",
+            "email": "donald@parker.com",
+            "dateCreated": "2025-11-04T21:10:58.783Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6be2d339c4190c89b1a8",
+            "name": "anthony carter",
+            "email": "anthony@carter.com",
+            "dateCreated": "2025-11-04T21:10:58.859Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6be2d339c4190c89b1ab",
+            "name": "russell morris",
+            "email": "russell@morris.com",
+            "dateCreated": "2025-11-04T21:10:58.929Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6be3d339c4190c89b1ae",
+            "name": "aaron baker",
+            "email": "aaron@baker.com",
+            "dateCreated": "2025-11-04T21:10:59.003Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6be3d339c4190c89b1b1",
+            "name": "edward wilson",
+            "email": "edward@wilson.com",
+            "dateCreated": "2025-11-04T21:10:59.072Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6be3d339c4190c89b1b4",
+            "name": "ryan robinson",
+            "email": "ryan@robinson.com",
+            "dateCreated": "2025-11-04T21:10:59.140Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6be3d339c4190c89b1b7",
+            "name": "harry jones",
+            "email": "harry@jones.com",
+            "dateCreated": "2025-11-04T21:10:59.235Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6be3d339c4190c89b1ba",
+            "name": "daniel young",
+            "email": "daniel@young.com",
+            "dateCreated": "2025-11-04T21:10:59.309Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6be3d339c4190c89b1bd",
+            "name": "andrew reed",
+            "email": "andrew@reed.com",
+            "dateCreated": "2025-11-04T21:10:59.393Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6be3d339c4190c89b1c0",
+            "name": "eugene lewis",
+            "email": "eugene@lewis.com",
+            "dateCreated": "2025-11-04T21:10:59.539Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6be3d339c4190c89b1c3",
+            "name": "russell young",
+            "email": "russell@young.com",
+            "dateCreated": "2025-11-04T21:10:59.611Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6be3d339c4190c89b1c6",
+            "name": "wayne campbell",
+            "email": "wayne@campbell.com",
+            "dateCreated": "2025-11-04T21:10:59.678Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6be3d339c4190c89b1c9",
+            "name": "antonio clark",
+            "email": "antonio@clark.com",
+            "dateCreated": "2025-11-04T21:10:59.747Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6be3d339c4190c89b1cc",
+            "name": "ronald russell",
+            "email": "ronald@russell.com",
+            "dateCreated": "2025-11-04T21:10:59.829Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6be3d339c4190c89b1cf",
+            "name": "ernest rivera",
+            "email": "ernest@rivera.com",
+            "dateCreated": "2025-11-04T21:10:59.901Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6be3d339c4190c89b1d2",
+            "name": "dennis bennett",
+            "email": "dennis@bennett.com",
+            "dateCreated": "2025-11-04T21:10:59.991Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6be4d339c4190c89b1d5",
+            "name": "samuel hughes",
+            "email": "samuel@hughes.com",
+            "dateCreated": "2025-11-04T21:11:00.061Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6be4d339c4190c89b1d8",
+            "name": "bruce moore",
+            "email": "bruce@moore.com",
+            "dateCreated": "2025-11-04T21:11:00.138Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6be4d339c4190c89b1db",
+            "name": "thomas hernandez",
+            "email": "thomas@hernandez.com",
+            "dateCreated": "2025-11-04T21:11:00.213Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a6be4d339c4190c89b1de",
+            "name": "willie green",
+            "email": "willie@green.com",
+            "dateCreated": "2025-11-04T21:11:00.283Z",
+            "__v": 0
+        },
+        {
+            "pendingTasks": [],
+            "_id": "690a7231d339c4190c89b344",
+            "name": "Akash Muthukumar",
+            "email": "akashm4@illinois.edu",
+            "dateCreated": "2025-11-04T21:37:53.852Z",
+            "__v": 0
+        }
+    ]
+}
+You said:
+{
+    "message": "OK",
+    "data": [
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be4d339c4190c89b1e0",
+            "name": "Make an inventory of my stuff so I can sell it all",
+            "deadline": "2025-11-07T07:57:18.000Z",
+            "dateCreated": "2025-11-04T21:11:00.334Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "690a6be3d339c4190c89b1b1",
+            "assignedUserName": "edward wilson",
+            "_id": "690a6be4d339c4190c89b1e3",
+            "name": "Order a massage for our exhausted colleague Olivier",
+            "deadline": "2025-11-11T21:41:08.000Z",
+            "dateCreated": "2025-11-04T21:11:00.425Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be4d339c4190c89b1e8",
+            "name": "to be a better artist",
+            "deadline": "2025-11-12T11:11:43.000Z",
+            "dateCreated": "2025-11-04T21:11:00.579Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "690a6be3d339c4190c89b1b1",
+            "assignedUserName": "edward wilson",
+            "_id": "690a6be4d339c4190c89b1eb",
+            "name": "Put my iphone in the garbage!",
+            "deadline": "2025-11-12T02:32:06.000Z",
+            "dateCreated": "2025-11-04T21:11:00.652Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "690a6be4d339c4190c89b1db",
+            "assignedUserName": "thomas hernandez",
+            "_id": "690a6be4d339c4190c89b1f1",
+            "name": "Check the Google console because it's my spouse",
+            "deadline": "2025-11-12T12:23:36.000Z",
+            "dateCreated": "2025-11-04T21:11:00.875Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "690a6be3d339c4190c89b1c9",
+            "assignedUserName": "antonio clark",
+            "_id": "690a6be5d339c4190c89b1f7",
+            "name": "Pay my taxes",
+            "deadline": "2025-11-12T00:51:40.000Z",
+            "dateCreated": "2025-11-04T21:11:01.072Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be5d339c4190c89b1f9",
+            "name": "quit job enjoy life",
+            "deadline": "2025-11-05T14:21:44.000Z",
+            "dateCreated": "2025-11-04T21:11:01.109Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be5d339c4190c89b1fb",
+            "name": "tidy my room",
+            "deadline": "2025-11-13T17:03:34.000Z",
+            "dateCreated": "2025-11-04T21:11:01.151Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "690a6be3d339c4190c89b1c3",
+            "assignedUserName": "russell young",
+            "_id": "690a6be5d339c4190c89b1fe",
+            "name": "Fly to USA",
+            "deadline": "2025-11-06T21:04:48.000Z",
+            "dateCreated": "2025-11-04T21:11:01.220Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "690a6be3d339c4190c89b1c0",
+            "assignedUserName": "eugene lewis",
+            "_id": "690a6be5d339c4190c89b201",
+            "name": "Sort my life out",
+            "deadline": "2025-11-05T21:53:55.000Z",
+            "dateCreated": "2025-11-04T21:11:01.338Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be5d339c4190c89b206",
+            "name": "Ron Ron",
+            "deadline": "2025-11-08T18:55:14.000Z",
+            "dateCreated": "2025-11-04T21:11:01.486Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "690a6be3d339c4190c89b1cc",
+            "assignedUserName": "ronald russell",
+            "_id": "690a6be5d339c4190c89b209",
+            "name": "start being happy happy happy and giving less shit",
+            "deadline": "2025-11-06T23:28:01.000Z",
+            "dateCreated": "2025-11-04T21:11:01.560Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "690a6be3d339c4190c89b1c3",
+            "assignedUserName": "russell young",
+            "_id": "690a6be5d339c4190c89b20c",
+            "name": "Update my team's resource schedule with all the gap requests",
+            "deadline": "2025-11-05T13:36:09.000Z",
+            "dateCreated": "2025-11-04T21:11:01.642Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be5d339c4190c89b211",
+            "name": "Call my old friend",
+            "deadline": "2025-11-08T09:31:03.000Z",
+            "dateCreated": "2025-11-04T21:11:01.786Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be5d339c4190c89b213",
+            "name": "Register with a new doctor before I'm actually ill",
+            "deadline": "2025-11-13T23:43:09.000Z",
+            "dateCreated": "2025-11-04T21:11:01.849Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "690a6be3d339c4190c89b1cf",
+            "assignedUserName": "ernest rivera",
+            "_id": "690a6be5d339c4190c89b216",
+            "name": "De oude vijver volstorten met zand",
+            "deadline": "2025-11-05T18:57:08.000Z",
+            "dateCreated": "2025-11-04T21:11:01.920Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "690a6be3d339c4190c89b1ba",
+            "assignedUserName": "daniel young",
+            "_id": "690a6be6d339c4190c89b219",
+            "name": "Learn how to anticrastinate",
+            "deadline": "2025-11-05T16:07:55.000Z",
+            "dateCreated": "2025-11-04T21:11:02.024Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "690a6be3d339c4190c89b1b1",
+            "assignedUserName": "edward wilson",
+            "_id": "690a6be6d339c4190c89b21f",
+            "name": "sober up",
+            "deadline": "2025-11-13T22:02:55.000Z",
+            "dateCreated": "2025-11-04T21:11:02.207Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "690a6be4d339c4190c89b1d5",
+            "assignedUserName": "samuel hughes",
+            "_id": "690a6be6d339c4190c89b225",
+            "name": "Make an inventory of my stuff so I can sell it all",
+            "deadline": "2025-11-12T03:41:55.000Z",
+            "dateCreated": "2025-11-04T21:11:02.376Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "690a6be4d339c4190c89b1de",
+            "assignedUserName": "willie green",
+            "_id": "690a6be6d339c4190c89b22b",
+            "name": "stop wasting time on facebook!",
+            "deadline": "2025-11-12T17:20:01.000Z",
+            "dateCreated": "2025-11-04T21:11:02.557Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "690a6be4d339c4190c89b1de",
+            "assignedUserName": "willie green",
+            "_id": "690a6be6d339c4190c89b231",
+            "name": "to bay iped",
+            "deadline": "2025-11-11T14:27:49.000Z",
+            "dateCreated": "2025-11-04T21:11:02.737Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "690a6be3d339c4190c89b1c0",
+            "assignedUserName": "eugene lewis",
+            "_id": "690a6be6d339c4190c89b234",
+            "name": "Procrastinate tomorrow",
+            "deadline": "2025-11-05T20:20:43.000Z",
+            "dateCreated": "2025-11-04T21:11:02.809Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be6d339c4190c89b236",
+            "name": "Shave arse",
+            "deadline": "2025-11-12T22:03:25.000Z",
+            "dateCreated": "2025-11-04T21:11:02.847Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "690a6be3d339c4190c89b1d2",
+            "assignedUserName": "dennis bennett",
+            "_id": "690a6be6d339c4190c89b239",
+            "name": "Put my dvds in the right cases",
+            "deadline": "2025-11-07T10:09:55.000Z",
+            "dateCreated": "2025-11-04T21:11:02.918Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "690a6be3d339c4190c89b1ae",
+            "assignedUserName": "aaron baker",
+            "_id": "690a6be6d339c4190c89b23c",
+            "name": "Complete my coursework, it's already late",
+            "deadline": "2025-11-08T16:40:17.000Z",
+            "dateCreated": "2025-11-04T21:11:02.988Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be7d339c4190c89b23e",
+            "name": "Stop working!",
+            "deadline": "2025-11-12T16:24:11.000Z",
+            "dateCreated": "2025-11-04T21:11:03.035Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be7d339c4190c89b240",
+            "name": "to live",
+            "deadline": "2025-11-08T21:16:08.000Z",
+            "dateCreated": "2025-11-04T21:11:03.071Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "690a6be3d339c4190c89b1b7",
+            "assignedUserName": "harry jones",
+            "_id": "690a6be7d339c4190c89b243",
+            "name": "study for english test tomorrow",
+            "deadline": "2025-11-13T09:12:43.000Z",
+            "dateCreated": "2025-11-04T21:11:03.148Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "690a6be4d339c4190c89b1d8",
+            "assignedUserName": "bruce moore",
+            "_id": "690a6be7d339c4190c89b249",
+            "name": "Collect dust",
+            "deadline": "2025-11-10T12:55:59.000Z",
+            "dateCreated": "2025-11-04T21:11:03.334Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be7d339c4190c89b24b",
+            "name": "Actually do some work whilst currently in work",
+            "deadline": "2025-11-11T16:54:40.000Z",
+            "dateCreated": "2025-11-04T21:11:03.372Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be7d339c4190c89b24d",
+            "name": "Don't forget to breathe",
+            "deadline": "2025-11-07T14:19:18.000Z",
+            "dateCreated": "2025-11-04T21:11:03.410Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be7d339c4190c89b24f",
+            "name": "Write an article on procrastination",
+            "deadline": "2025-11-05T06:02:05.000Z",
+            "dateCreated": "2025-11-04T21:11:03.452Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be7d339c4190c89b251",
+            "name": "stop drinking so much",
+            "deadline": "2025-11-05T11:04:02.000Z",
+            "dateCreated": "2025-11-04T21:11:03.490Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be7d339c4190c89b253",
+            "name": "Do my homeworks in japanese :(",
+            "deadline": "2025-11-09T12:52:34.000Z",
+            "dateCreated": "2025-11-04T21:11:03.527Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "690a6be3d339c4190c89b1c0",
+            "assignedUserName": "eugene lewis",
+            "_id": "690a6be7d339c4190c89b256",
+            "name": "Find Jesus",
+            "deadline": "2025-11-11T11:16:49.000Z",
+            "dateCreated": "2025-11-04T21:11:03.607Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be7d339c4190c89b25b",
+            "name": "Get out of bed",
+            "deadline": "2025-11-09T18:49:24.000Z",
+            "dateCreated": "2025-11-04T21:11:03.774Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be7d339c4190c89b25d",
+            "name": "Fly to USA",
+            "deadline": "2025-11-10T04:48:31.000Z",
+            "dateCreated": "2025-11-04T21:11:03.815Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be7d339c4190c89b25f",
+            "name": "File taxes",
+            "deadline": "2025-11-11T18:42:55.000Z",
+            "dateCreated": "2025-11-04T21:11:03.854Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "690a6be2d339c4190c89b1a5",
+            "assignedUserName": "donald parker",
+            "_id": "690a6be7d339c4190c89b262",
+            "name": "Go to my local pub for a delicious meal",
+            "deadline": "2025-11-10T10:02:19.000Z",
+            "dateCreated": "2025-11-04T21:11:03.938Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "690a6be3d339c4190c89b1d2",
+            "assignedUserName": "dennis bennett",
+            "_id": "690a6be8d339c4190c89b265",
+            "name": "Take over the world because I'm adorable",
+            "deadline": "2025-11-06T11:22:51.000Z",
+            "dateCreated": "2025-11-04T21:11:04.032Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "690a6be4d339c4190c89b1de",
+            "assignedUserName": "willie green",
+            "_id": "690a6be8d339c4190c89b268",
+            "name": "Call potential clients to try to sell them our products",
+            "deadline": "2025-11-12T21:42:07.000Z",
+            "dateCreated": "2025-11-04T21:11:04.103Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be8d339c4190c89b26a",
+            "name": "Make little models of houses",
+            "deadline": "2025-11-08T22:30:02.000Z",
+            "dateCreated": "2025-11-04T21:11:04.139Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be8d339c4190c89b26c",
+            "name": "stop thinking about him",
+            "deadline": "2025-11-06T09:46:11.000Z",
+            "dateCreated": "2025-11-04T21:11:04.174Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be8d339c4190c89b26e",
+            "name": "that is the question",
+            "deadline": "2025-11-12T23:43:49.000Z",
+            "dateCreated": "2025-11-04T21:11:04.210Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be8d339c4190c89b270",
+            "name": "tidy my room",
+            "deadline": "2025-11-10T17:56:57.000Z",
+            "dateCreated": "2025-11-04T21:11:04.248Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "690a6be3d339c4190c89b1bd",
+            "assignedUserName": "andrew reed",
+            "_id": "690a6be8d339c4190c89b273",
+            "name": "study for finals, finish my homework, sleep",
+            "deadline": "2025-11-13T06:47:41.000Z",
+            "dateCreated": "2025-11-04T21:11:04.317Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "690a6be3d339c4190c89b1b7",
+            "assignedUserName": "harry jones",
+            "_id": "690a6be8d339c4190c89b276",
+            "name": "toke a reefer, take a hit, smoke that shit!",
+            "deadline": "2025-11-12T16:04:27.000Z",
+            "dateCreated": "2025-11-04T21:11:04.390Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "690a6be4d339c4190c89b1d5",
+            "assignedUserName": "samuel hughes",
+            "_id": "690a6be8d339c4190c89b27c",
+            "name": "Clean up after The US Army",
+            "deadline": "2025-11-06T02:42:48.000Z",
+            "dateCreated": "2025-11-04T21:11:04.586Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be8d339c4190c89b27e",
+            "name": "Write my thesis",
+            "deadline": "2025-11-10T09:50:28.000Z",
+            "dateCreated": "2025-11-04T21:11:04.623Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "690a6be3d339c4190c89b1c3",
+            "assignedUserName": "russell young",
+            "_id": "690a6be8d339c4190c89b281",
+            "name": "File taxes",
+            "deadline": "2025-11-08T06:27:16.000Z",
+            "dateCreated": "2025-11-04T21:11:04.695Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be8d339c4190c89b286",
+            "name": "ArrÃªter d'envoyer des conneries dans kazaa",
+            "deadline": "2025-11-14T04:16:30.000Z",
+            "dateCreated": "2025-11-04T21:11:04.855Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "690a6be4d339c4190c89b1d8",
+            "assignedUserName": "bruce moore",
+            "_id": "690a6be8d339c4190c89b289",
+            "name": "Do what my dumb supervisor asking me to do",
+            "deadline": "2025-11-07T19:52:03.000Z",
+            "dateCreated": "2025-11-04T21:11:04.964Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "690a6be3d339c4190c89b1b1",
+            "assignedUserName": "edward wilson",
+            "_id": "690a6be9d339c4190c89b28c",
+            "name": "To-do my to-do list",
+            "deadline": "2025-11-12T16:49:39.000Z",
+            "dateCreated": "2025-11-04T21:11:05.049Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be9d339c4190c89b28e",
+            "name": "Find something interesting to do on the net",
+            "deadline": "2025-11-09T22:54:17.000Z",
+            "dateCreated": "2025-11-04T21:11:05.089Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": true,
+            "assignedUser": "690a6be3d339c4190c89b1ba",
+            "assignedUserName": "daniel young",
+            "_id": "690a6be9d339c4190c89b291",
+            "name": "read the 7 books iv just downloaded",
+            "deadline": "2025-11-09T13:43:17.000Z",
+            "dateCreated": "2025-11-04T21:11:05.159Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be9d339c4190c89b293",
+            "name": "DENTIST!!!",
+            "deadline": "2025-11-09T16:17:34.000Z",
+            "dateCreated": "2025-11-04T21:11:05.197Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be9d339c4190c89b295",
+            "name": "stop thinking about him",
+            "deadline": "2025-11-12T14:39:05.000Z",
+            "dateCreated": "2025-11-04T21:11:05.237Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
+            "completed": false,
+            "assignedUser": "",
+            "assignedUserName": "unassigned",
+            "_id": "690a6be9d339c4190c89b297",
+            "name": "redevelop our menu for spring including a new vegie option",
+            "deadline": "2025-11-11T19:34:54.000Z",
+            "dateCreated": "2025-11-04T21:11:05.274Z",
+            "__v": 0
+        },
+        {
+            "description": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
