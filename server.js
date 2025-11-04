@@ -4,7 +4,7 @@ var express = require('express'),
     mongoose = require('mongoose'),
     bodyParser = require('body-parser');
 
-// Read .env file
+// ✅ Read .env file first
 require('dotenv').config();
 
 // Create our Express application
@@ -12,9 +12,20 @@ var app = express();
 
 // Use environment defined port or 3000
 var port = process.env.PORT || 3000;
+console.log('Connecting to MongoDB with URI:', process.env.MONGODB_URI);
+// ✅ Connect to MongoDB Atlas (remove the old commented-out line)
+mongoose.connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+});
 
-// Connect to a MongoDB --> Uncomment this once you have a connection string!!
-//mongoose.connect(process.env.MONGODB_URI,  { useNewUrlParser: true });
+// ✅ Optional — log connection success or errors
+mongoose.connection.on('connected', () => {
+    console.log('✅ MongoDB connected successfully');
+});
+mongoose.connection.on('error', (err) => {
+    console.error('❌ MongoDB connection error:', err);
+});
 
 // Allow CORS so that backend and frontend could be put on different servers
 var allowCrossDomain = function (req, res, next) {
@@ -35,5 +46,6 @@ app.use(bodyParser.json());
 require('./routes')(app, router);
 
 // Start the server
-app.listen(port);
-console.log('Server running on port ' + port);
+app.listen(port, () => {
+    console.log('🚀 Server running on port ' + port);
+});
